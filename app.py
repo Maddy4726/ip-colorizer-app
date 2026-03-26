@@ -12,6 +12,13 @@ st.title("📊 Excel IP Colorizer")
 excel_file = st.file_uploader("Upload Excel File (.xlsx)", type=["xlsx"])
 ip_file = st.file_uploader("Upload IP List File (.txt)", type=["txt"])
 
+st.write("### Uploaded Files")
+if excel_file:
+    st.success(f"Excel file: {excel_file.name}")
+if ip_file:
+    st.success(f"IP file: {ip_file.name}")
+
+
 # --- Process Function ---
 def process_excel(excel_path, ip_path, output_path):
     green_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
@@ -50,6 +57,7 @@ if st.button("🚀 Process Files"):
         st.error("Please upload both files.")
     else:
         with st.spinner("Processing..."):
+            st.info("Processing all sheets and cells...")
 
             # Temporary files
             with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_excel:
@@ -75,3 +83,5 @@ if st.button("🚀 Process Files"):
                 file_name="output.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
+
