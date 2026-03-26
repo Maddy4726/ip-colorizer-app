@@ -77,7 +77,7 @@ def process_excel(excel_path, ip_path, output_path):
     for sheet in workbook.worksheets:
         for row in sheet.iter_rows():
             for cell in row:
-                if not cell_value:
+                if not cell.value:
                     continue
 
                 if isinstance(cell.value, str):
