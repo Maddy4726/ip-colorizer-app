@@ -103,7 +103,7 @@ if st.button("🚀 Process Files",use_container_width = True):
     else:
         st.info("Processing all sheets and cells...")
 
-        with st.spinner("Processing....")
+        with st.spinner("Processing...."):
 
             # Save Excel File
             with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_excel:
