@@ -6,16 +6,14 @@ import tempfile
 import pandas as pd
 import os
 
-#Location of the main title
+# Page config
 st.set_page_config(page_title="Excel IP Colorizer", layout="centered")
 
-# Main Title in the page
+# Title
 st.title("📊 Excel IP Colorizer")
 st.caption("Upload Excel file and IP list to highlight matching IPs.")
 
 # --- File Upload ---
-#excel_file = st.file_uploader("Upload Excel File (.xlsx)", type=["xlsx"])
-#ip_file = st.file_uploader("Upload IP List File (.txt)", type=["txt"])
 excel_file = st.file_uploader(
     "Upload Excel File",
     type=["xlsx", "xls", "xlsm"]
@@ -26,7 +24,7 @@ ip_file = st.file_uploader(
     type=["txt", "csv", "xlsx"]
 )
 
-# ---Show Uploaded Files---
+# --- Show Uploaded Files ---
 st.divider()
 st.write("### Uploaded Files")
 
@@ -37,7 +35,7 @@ if ip_file:
     st.success(f"IP file: {ip_file.name}")
     st.write(f"Detected IP file type: {ip_file.name}")
 
-    #--- Load IP List ---
+# --- Load IP List ---
 def load_ip_list(ip_path):
     if ip_path.endswith(".txt"):
         with open(ip_path, 'r') as f:
@@ -54,7 +52,6 @@ def load_ip_list(ip_path):
     else:
         raise ValueError("Unsupported IP file format")
 
-
 # --- Process Function ---
 def process_excel(excel_path, ip_path, output_path):
     green_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
@@ -65,9 +62,7 @@ def process_excel(excel_path, ip_path, output_path):
         r'(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}'
     )
 
-    # Read IP list
     pinging_ips = load_ip_list(ip_path)
-
 
     workbook = openpyxl.load_workbook(excel_path)
 
@@ -90,25 +85,26 @@ def process_excel(excel_path, ip_path, output_path):
                         else:
                             cell.fill = red_fill
                             no_match_count += 1
+
     workbook.save(output_path)
 
     return match_count, no_match_count
 
-
 # --- Process Button ---
-if st.button("🚀 Process Files",use_container_width = True):
+if st.button("🚀 Process Files", use_container_width=True):
 
     if excel_file is None or ip_file is None:
         st.error("Please upload both files.")
     else:
         st.info("Processing all sheets and cells...")
 
-        with st.spinner("Processing...."):
+        with st.spinner("Processing..."):
 
-            # Save Excel File
+            # Save Excel file
             with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_excel:
                 temp_excel.write(excel_file.read())
                 excel_path = temp_excel.name
+
             # Save IP file with correct extension
             ip_extension = os.path.splitext(ip_file.name)[1]
             with tempfile.NamedTemporaryFile(delete=False, suffix=ip_extension) as temp_ip:
@@ -118,17 +114,19 @@ if st.button("🚀 Process Files",use_container_width = True):
             # Output file
             output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx").name
 
-            # Run processing
-            process_excel(excel_path, ip_path, output_path)
+            # ✅ FIX: capture return values
+            match_count, no_match_count = process_excel(excel_path, ip_path, output_path)
 
         # --- Results ---
         st.divider()
         st.subheader("Results")
 
-        st.success(f"""✅ Processing complete!
+        st.success(f"""
+        ✅ Processing complete!
+
         🟢 Matched IPs: {match_count}  
         🔴 Not Matched IPs: {no_match_count}
-         """)
+        """)
 
         # Download button
         with open(output_path, "rb") as f:
@@ -138,5 +136,3 @@ if st.button("🚀 Process Files",use_container_width = True):
                 file_name=f"{excel_file.name.split('.')[0]}_processed.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-
-
