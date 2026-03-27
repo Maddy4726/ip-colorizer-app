@@ -22,7 +22,7 @@ clean:
 	find . -type d -name "__pycache__" -delete
 	
 test:
-	python -m streamlit run app.py --server.headless.true
+	pytest
 
 lint:
 	flake8 .

@@ -4,3 +4,4 @@ pandas
 xlrd
 flake8
 black == 24.4.2
+pytest
