@@ -1,9 +1,9 @@
 import re
 
 ip_pattern = re.compile(
-    r'(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)'
-    r'(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}'
+    r"(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)" r"(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}"
 )
+
 
 def extract_ip(text):
     match = ip_pattern.search(text)
