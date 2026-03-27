@@ -5,6 +5,7 @@ import re
 import tempfile
 import pandas as pd
 import os
+from openpyxl.comments import Comment
 
 # Page config
 st.set_page_config(page_title="Excel IP Colorizer", layout="centered")
@@ -55,17 +56,21 @@ def process_excel(excel_path, ip_path, output_path):
     )
     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
 
-    ip_pattern = re.compile(
-        r"(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)"
-        r"(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}"
+    yellow_fill = PatternFill(
+        start_color="FFEB9C", end_color="FFEB9C", fill_type="solid"
     )
 
+    ip_pattern = re.compile(
+        r"(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)"
+        r"(?:\.(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}"
+    )
     pinging_ips = load_ip_list(ip_path)
 
     workbook = openpyxl.load_workbook(excel_path)
 
     match_count = 0
     no_match_count = 0
+    mixed_count = 0
 
     for sheet in workbook.worksheets:
         for row in sheet.iter_rows():
@@ -74,19 +79,32 @@ def process_excel(excel_path, ip_path, output_path):
                     continue
 
                 if isinstance(cell.value, str):
-                    match = ip_pattern.search(cell.value)
-                    if match:
-                        ip = match.group()
-                        if ip in pinging_ips:
+                    ips = ip_pattern.findall(cell.value)
+                    if ips:
+                        matched = [ip for ip in ips if ip in pinging_ips]
+                        unmatched = [ip for ip in ips if ip not in pinging_ips]
+                        if len(matched) == len(ips):
                             cell.fill = green_fill
                             match_count += 1
-                        else:
+
+                        elif len(matched) == 0:
                             cell.fill = red_fill
                             no_match_count += 1
 
+                        else:
+                            cell.fill = yellow_fill
+                            mixed_count += 1
+
+                            comment_text = (
+                                f"Matched: {','.join(matched)}\n"
+                                f"Not Matched: {','.join(unmatched)}"
+                            )
+                            if not cell.comment:
+                                cell.comment = Comment(comment_text, "IP Checker")
+
     workbook.save(output_path)
 
-    return match_count, no_match_count
+    return match_count, no_match_count, mixed_count
 
 
 # --- Process Button ---
@@ -118,7 +136,7 @@ if st.button("🚀 Process Files", use_container_width=True):
             output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx").name
 
             # ✅ FIX: capture return values
-            match_count, no_match_count = process_excel(
+            match_count, no_match_count, mixed_count = process_excel(
                 excel_path, ip_path, output_path
             )
 
@@ -131,6 +149,7 @@ if st.button("🚀 Process Files", use_container_width=True):
         ✅ Processing complete!
         🟢 Matched IPs: {match_count}
         🔴 Not Matched IPs: {no_match_count}
+        🟡 Mixed IPs: {mixed_count}
         """
         )
 
