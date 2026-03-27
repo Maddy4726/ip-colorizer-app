@@ -23,7 +23,18 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    - name: Run basic check
+    # 🔥 LINT STEP (NEW)
+    - name: Run lint check
+      run: |
+        flake8 .
+
+    # Optional: auto-format check (fails if not formatted)
+    - name: Check formatting
+      run: |
+        black --check .
+
+    # Run app (basic sanity check)
+    - name: Run Streamlit app
       run: |
         python -m streamlit run app.py --server.headless true --server.port 8501 &
         sleep 10

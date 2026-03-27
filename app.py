@@ -14,15 +14,9 @@ st.title("📊 Excel IP Colorizer")
 st.caption("Upload Excel file and IP list to highlight matching IPs.")
 
 # --- File Upload ---
-excel_file = st.file_uploader(
-    "Upload Excel File",
-    type=["xlsx", "xls", "xlsm"]
-)
+excel_file = st.file_uploader("Upload Excel File", type=["xlsx", "xls", "xlsm"])
 
-ip_file = st.file_uploader(
-    "Upload IP List File",
-    type=["txt", "csv", "xlsx"]
-)
+ip_file = st.file_uploader("Upload IP List File", type=["txt", "csv", "xlsx"])
 
 # --- Show Uploaded Files ---
 st.divider()
@@ -35,10 +29,11 @@ if ip_file:
     st.success(f"IP file: {ip_file.name}")
     st.write(f"Detected IP file type: {ip_file.name}")
 
+
 # --- Load IP List ---
 def load_ip_list(ip_path):
     if ip_path.endswith(".txt"):
-        with open(ip_path, 'r') as f:
+        with open(ip_path, "r") as f:
             return {line.strip() for line in f if line.strip()}
 
     elif ip_path.endswith(".csv"):
@@ -52,14 +47,17 @@ def load_ip_list(ip_path):
     else:
         raise ValueError("Unsupported IP file format")
 
+
 # --- Process Function ---
 def process_excel(excel_path, ip_path, output_path):
-    green_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
-    red_fill   = PatternFill(start_color='FFC7CE', end_color='FFC7CE', fill_type='solid')
+    green_fill = PatternFill(
+        start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"
+    )
+    red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
 
     ip_pattern = re.compile(
-        r'(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)'
-        r'(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}'
+        r"(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)"
+        r"(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}"
     )
 
     pinging_ips = load_ip_list(ip_path)
@@ -90,6 +88,7 @@ def process_excel(excel_path, ip_path, output_path):
 
     return match_count, no_match_count
 
+
 # --- Process Button ---
 if st.button("🚀 Process Files", use_container_width=True):
 
@@ -101,13 +100,17 @@ if st.button("🚀 Process Files", use_container_width=True):
         with st.spinner("Processing..."):
 
             # Save Excel file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_excel:
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=".xlsx"
+            ) as temp_excel:
                 temp_excel.write(excel_file.read())
                 excel_path = temp_excel.name
 
             # Save IP file with correct extension
             ip_extension = os.path.splitext(ip_file.name)[1]
-            with tempfile.NamedTemporaryFile(delete=False, suffix=ip_extension) as temp_ip:
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=ip_extension
+            ) as temp_ip:
                 temp_ip.write(ip_file.read())
                 ip_path = temp_ip.name
 
@@ -115,18 +118,21 @@ if st.button("🚀 Process Files", use_container_width=True):
             output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx").name
 
             # ✅ FIX: capture return values
-            match_count, no_match_count = process_excel(excel_path, ip_path, output_path)
+            match_count, no_match_count = process_excel(
+                excel_path, ip_path, output_path
+            )
 
         # --- Results ---
         st.divider()
         st.subheader("Results")
 
-        st.success(f"""
+        st.success(
+            f"""
         ✅ Processing complete!
-
-        🟢 Matched IPs: {match_count}  
+        🟢 Matched IPs: {match_count}
         🔴 Not Matched IPs: {no_match_count}
-        """)
+        """
+        )
 
         # Download button
         with open(output_path, "rb") as f:
@@ -134,5 +140,5 @@ if st.button("🚀 Process Files", use_container_width=True):
                 label="📥 Download Processed File",
                 data=f,
                 file_name=f"{excel_file.name.split('.')[0]}_processed.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
