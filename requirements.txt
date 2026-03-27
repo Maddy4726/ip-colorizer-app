@@ -3,4 +3,4 @@ openpyxl
 pandas
 xlrd
 flake8
-black
+black == 24.4.2
