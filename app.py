@@ -6,6 +6,8 @@ import tempfile
 import pandas as pd
 import os
 from openpyxl.comments import Comment
+import zipfile
+import io
 
 # Page config
 st.set_page_config(page_title="Excel IP Colorizer", layout="centered")
@@ -15,7 +17,7 @@ st.title("📊 Excel IP Colorizer")
 st.caption("Upload Excel file and IP list to highlight matching IPs.")
 
 # --- File Upload ---
-excel_file = st.file_uploader("Upload Excel File", type=["xlsx", "xls", "xlsm"])
+excel_files = st.file_uploader("Upload Excel Files", type=["xlsx", "xls", "xlsm"], accept_multiple_files=True)
 
 ip_file = st.file_uploader("Upload IP List File", type=["txt", "csv", "xlsx"])
 
@@ -23,8 +25,9 @@ ip_file = st.file_uploader("Upload IP List File", type=["txt", "csv", "xlsx"])
 st.divider()
 st.write("### Uploaded Files")
 
-if excel_file:
-    st.success(f"Excel file: {excel_file.name}")
+if excel_files:
+    st.success(f"Excel files: {', '.join([f.name for f in excel_files])}")
+    st.write(f"Total files selected: {len(excel_files)}")
 
 if ip_file:
     st.success(f"IP file: {ip_file.name}")
@@ -110,20 +113,12 @@ def process_excel(excel_path, ip_path, output_path):
 # --- Process Button ---
 if st.button("🚀 Process Files", use_container_width=True):
 
-    if excel_file is None or ip_file is None:
-        st.error("Please upload both files.")
+    if not excel_files or ip_file is None:
+        st.error("Please upload at least one Excel file and an IP list file.")
     else:
-        st.info("Processing all sheets and cells...")
+        st.info(f"Processing {len(excel_files)} file(s)...")
 
         with st.spinner("Processing..."):
-
-            # Save Excel file
-            with tempfile.NamedTemporaryFile(
-                delete=False, suffix=".xlsx"
-            ) as temp_excel:
-                temp_excel.write(excel_file.read())
-                excel_path = temp_excel.name
-
             # Save IP file with correct extension
             ip_extension = os.path.splitext(ip_file.name)[1]
             with tempfile.NamedTemporaryFile(
@@ -132,32 +127,64 @@ if st.button("🚀 Process Files", use_container_width=True):
                 temp_ip.write(ip_file.read())
                 ip_path = temp_ip.name
 
-            # Output file
-            output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx").name
+            # Create temporary directory for processed files
+            temp_dir = tempfile.mkdtemp()
+            
+            # Process each Excel file
+            all_results = []
+            for excel_file in excel_files:
+                # Save Excel file
+                with tempfile.NamedTemporaryFile(
+                    delete=False, suffix=".xlsx"
+                ) as temp_excel:
+                    temp_excel.write(excel_file.read())
+                    excel_path = temp_excel.name
 
-            # ✅ FIX: capture return values
-            match_count, no_match_count, mixed_count = process_excel(
-                excel_path, ip_path, output_path
-            )
+                # Output file
+                output_filename = f"{os.path.splitext(excel_file.name)[0]}_processed.xlsx"
+                output_path = os.path.join(temp_dir, output_filename)
+
+                # Process file
+                match_count, no_match_count, mixed_count = process_excel(
+                    excel_path, ip_path, output_path
+                )
+                
+                all_results.append({
+                    "filename": excel_file.name,
+                    "matched": match_count,
+                    "not_matched": no_match_count,
+                    "mixed": mixed_count
+                })
+
+            # Create zip file with all processed files
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                for filename in os.listdir(temp_dir):
+                    file_path = os.path.join(temp_dir, filename)
+                    zip_file.write(file_path, arcname=filename)
+            
+            zip_buffer.seek(0)
 
         # --- Results ---
         st.divider()
         st.subheader("Results")
 
-        st.success(
-            f"""
-        ✅ Processing complete!
-        🟢 Matched IPs: {match_count}
-        🔴 Not Matched IPs: {no_match_count}
-        🟡 Mixed IPs: {mixed_count}
-        """
-        )
-
-        # Download button
-        with open(output_path, "rb") as f:
-            st.download_button(
-                label="📥 Download Processed File",
-                data=f,
-                file_name=f"{excel_file.name.split('.')[0]}_processed.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        # Display results for each file
+        for result in all_results:
+            st.success(
+                f"""
+                **{result['filename']}**
+                ✅ Matched IPs: {result['matched']}
+                ❌ Not Matched IPs: {result['not_matched']}
+                ⚠️ Mixed IPs: {result['mixed']}
+                """
             )
+
+        # Download button for zip file
+        st.download_button(
+            label="📥 Download All Processed Files (ZIP)",
+            data=zip_buffer.getvalue(),
+            file_name="processed_files.zip",
+            mime="application/zip",
+            use_container_width=True
+        )
